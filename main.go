@@ -44,14 +44,8 @@ func run(dry bool) {
 	f.SelectRepository()
 	f.PrintRepositoryOverview()
 
-	prompt := promptui.Prompt{
-		Label:     "Do you want to modify this repository?",
-		IsConfirm: true,
-	}
-	accept, err := prompt.Run()
-	if err != nil {
-		MessageAndDie(fmt.Sprintf("Prompt failed %v\n", err))
-	} else if accept != "y" {
+	accept := confirm("Do you want to modify this repository?")
+	if accept != "y"{
 		MessageAndDie("Exiting on user command")
 	}
 
@@ -68,4 +62,18 @@ func run(dry bool) {
 func MessageAndDie(s string) {
 	fmt.Println(s)
 	os.Exit(-1)
+}
+
+// bool prompt wrapper
+func confirm(message string) string {
+	prompt := promptui.Prompt{
+		Label:     message,
+		IsConfirm: true,
+	}
+	ret, err := prompt.Run()
+	if err != nil {
+		MessageAndDie(fmt.Sprintf("Prompt failed %v\n", err))
+	}
+
+	return ret
 }
