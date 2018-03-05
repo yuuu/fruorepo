@@ -6,10 +6,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/google/go-github/github"
 	"github.com/manifoldco/promptui"
 	"golang.org/x/oauth2"
-	"github.com/briandowns/spinner"
 )
 
 type Fruorepo struct {
@@ -81,21 +81,20 @@ func (f *Fruorepo) PrintRepositoryOverview() {
 	fmt.Println("------------------------------------------------")
 }
 
-func ChangeLabel(repo *github.Repository) {}
-
-// GetLabels fetches all labels in a repository, iterating over pages for 50 at a time.
-func (f *Fruorepo) GetLabels() ([]*github.Label, error) {
-	var labelsRemote []*github.Label
+func (f *Fruorepo) FetchLabels() ([]*github.Label, error) {
+	var labels []*github.Label
 
 	pagination := &github.ListOptions{
 		PerPage: 50,
 		Page:    1,
 	}
 
-	for {
-		fmt.Printf("Fetching labels from Github, page %d\n", pagination.Page)
+	fmt.Println("Fetching labels...")
+	s := spinner.New(spinner.CharSets[34], 100*time.Millisecond)
+	s.Start()
 
-		labels, resp, err := f.Client.Issues.ListLabels(
+	for {
+		labelList, resp, err := f.Client.Issues.ListLabels(
 			context.Background(),
 			f.Repository.GetOwner().GetLogin(),
 			f.Repository.GetName(),
@@ -107,14 +106,63 @@ func (f *Fruorepo) GetLabels() ([]*github.Label, error) {
 			return nil, err
 		}
 
-		labelsRemote = append(labelsRemote, labels...)
+		labels = append(labels, labelList...)
 
 		if resp.NextPage == 0 {
-			fmt.Println("Fetched all labels from Github")
 			break
 		}
 		pagination.Page = resp.NextPage
 	}
+	s.Stop()
 
-	return labelsRemote, nil
+	return labels, nil
+}
+
+func (f *Fruorepo) DeleteLabel(label *github.Label, opt *Options) error {
+	if opt.DryRun {
+		fmt.Printf("Deleted Label...Name:'%s', Color:'%s'(dry run)\n", *label.Name, *label.Color)
+		return nil
+	}
+
+	resp, err := f.Client.Issues.DeleteLabel(
+		context.Background(),
+		f.Repository.GetOwner().GetLogin(),
+		f.Repository.GetName(),
+		*label.Name,
+	)
+
+	if err != nil {
+		fmt.Printf("Failed to DeleteLabel...Name:'%s', Color:'%s'\n", *label.Name, *label.Color)
+		fmt.Printf("Response: %s\n", resp)
+		return err
+	}
+	fmt.Printf("Deleted Label...Name:'%s', Color:'%s'\n", *label.Name, *label.Color)
+
+	return nil
+}
+
+func (f *Fruorepo) CreateLabel(name, color string, opt *Options) error {
+	if opt.DryRun {
+		fmt.Printf("Created Label...Name:'%s', Color:'%s'(dry run)\n", name, color)
+		return nil
+	}
+
+	label, resp, err := f.Client.Issues.CreateLabel(
+		context.Background(),
+		f.Repository.GetOwner().GetLogin(),
+		f.Repository.GetName(),
+		&github.Label{
+			Name:  &name,
+			Color: &color,
+		},
+	)
+
+	if err != nil {
+		fmt.Printf("Failed to CreateLabel...Name:'%s', Color:'%s'\n", *label.Name, *label.Color)
+		fmt.Printf("Response: %s\n", resp)
+		return err
+	}
+	fmt.Printf("Created Label...Name:'%s', Color:'%s'\n", *label.Name, *label.Color)
+
+	return nil
 }
