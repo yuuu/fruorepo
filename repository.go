@@ -102,7 +102,7 @@ func (f *Fruorepo) FetchLabels() ([]*github.Label, error) {
 		)
 
 		if err != nil {
-			fmt.Println("Failed to fetch labels from Github")
+			fmt.Printf("Failed to FetchLabels.\n")
 			return nil, err
 		}
 
@@ -132,7 +132,7 @@ func (f *Fruorepo) DeleteLabel(label *github.Label, opt *Options) error {
 	)
 
 	if err != nil {
-		fmt.Printf("Failed to DeleteLabel...Name:'%s', Color:'%s'\n", *label.Name, *label.Color)
+		fmt.Printf("Failed to DeleteeLabel.\n")
 		fmt.Printf("Response: %s\n", resp)
 		return err
 	}
@@ -158,7 +158,7 @@ func (f *Fruorepo) CreateLabel(name, color string, opt *Options) error {
 	)
 
 	if err != nil {
-		fmt.Printf("Failed to CreateLabel...Name:'%s', Color:'%s'\n", *label.Name, *label.Color)
+		fmt.Printf("Failed to CreateLabel.\n")
 		fmt.Printf("Response: %s\n", resp)
 		return err
 	}
