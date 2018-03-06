@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -61,6 +62,16 @@ func (f *Fruorepo) SelectRepository() {
 		Label:     "Select Repository",
 		Items:     items,
 		Templates: templates,
+		Searcher: func(input string, idx int) bool {
+			item := items[idx]
+			name := strings.ToLower(item)
+
+			if strings.Contains(name, input) {
+				return true
+			}
+
+			return false
+		},
 	}
 
 	n, _, err := prompt.Run()
