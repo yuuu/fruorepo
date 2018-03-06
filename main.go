@@ -91,8 +91,15 @@ func run(opt *Options) {
 
 	// CreateLabels
 	labelSet := []map[string]string{}
-	labelSet = append(labelSet, map[string]string{"name": ":dragon:ドラゴン", "color": "FF6969"})
-	labelSet = append(labelSet, map[string]string{"name": ":crossed_swords:討伐中", "color": "6EC4FF"})
+	labelSet = append(labelSet, map[string]string{"name": ":scroll:クエスト中", "color": "17139C"})                // WIP
+	labelSet = append(labelSet, map[string]string{"name": ":mag:鑑定待ち", "color": "5FCC9C"})                    // レビュー待ち
+	labelSet = append(labelSet, map[string]string{"name": ":moneybag:クエスト達成", "color": "FFA3AC"})             // 作業終了
+	labelSet = append(labelSet, map[string]string{"name": ":speech_balloon:追加クエスト", "color": "FFCD19"})       // 修正依頼
+	labelSet = append(labelSet, map[string]string{"name": ":crossed_swords:討伐中", "color": "6EC4FF"})          // WIP（バグ取り）
+	labelSet = append(labelSet, map[string]string{"name": ":+1:討伐済み", "color": "6EC4FF"})                     // バグ取り完了
+	labelSet = append(labelSet, map[string]string{"name": ":dragon:ドラゴン", "color": "E43A19"})                 // バグ：優先度高
+	labelSet = append(labelSet, map[string]string{"name": ":sparkles:スキルアップ", "color": "ECFEFF"})             // 機能追加
+	labelSet = append(labelSet, map[string]string{"name": ":face_with_head_bandage:援軍要請", "color": "B30753"}) // Help
 
 	for _, label := range labelSet {
 		err := f.CreateLabel(label["name"], label["color"], opt)
@@ -101,7 +108,8 @@ func run(opt *Options) {
 		}
 	}
 
-	fmt.Println("Repository has been changed.\nHave a nice day!!")
+	fmt.Println("Repository has been changed.")
+	fmt.Println("Have a nice day!!")
 }
 
 // MessageAndDie
