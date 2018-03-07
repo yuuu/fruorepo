@@ -96,9 +96,11 @@ func run(opt *Options) {
 	if err != nil {
 		MessageAndDie(err.Error())
 	}
-	if os.MkdirAll(path+"/.fruorepo", 0755) != nil {
+	path += "/.fruorepo"
+	if os.MkdirAll(path, 0755) != nil {
 		MessageAndDie(err.Error())
 	}
+	path += "/restore"
 
 	// CreateLabels
 	labelSet := []map[string]string{}
@@ -158,7 +160,7 @@ func confirm(message string) string {
 
 // backup labelset
 func backupLabelset(path string, labels []*github.Label) error {
-	file, err := os.Create(path + "/.fruorepo/restore")
+	file, err := os.Create(path)
 	if err != nil {
 		return err
 	}
@@ -177,7 +179,7 @@ func backupLabelset(path string, labels []*github.Label) error {
 func restoreLbelset(path string) ([]map[string]string, error) {
 	labelSet := []map[string]string{}
 
-	file, err := os.Open(path + "/.fruorepo/restore")
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
