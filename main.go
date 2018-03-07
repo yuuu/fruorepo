@@ -1,16 +1,22 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
+	"strings"
+
+	"github.com/google/go-github/github"
+	"github.com/mitchellh/go-homedir"
 
 	"github.com/manifoldco/promptui"
 	"github.com/urfave/cli"
 )
 
 type Options struct {
-	DryRun bool
+	DryRun  bool
+	Restore bool
 }
 
 func main() {
@@ -48,14 +54,19 @@ func main() {
 	opt := new(Options)
 	app.Action = func(c *cli.Context) error {
 		opt.DryRun = c.Bool("dry-run")
+		opt.Restore = (c.Bool("restore") || c.Bool("r"))
 		run(opt)
 		return nil
 	}
 
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
-			Name:  "dry-run",
+			Name:  "dry-run, d",
 			Usage: "Run, But Not Change Repository.",
+		},
+		cli.BoolFlag{
+			Name:  "restore, r",
+			Usage: "Restore To The State Just Before The Repository.",
 		},
 	}
 
@@ -81,6 +92,31 @@ func run(opt *Options) {
 		MessageAndDie(err.Error())
 	}
 
+	path, err := homedir.Dir()
+	if err != nil {
+		MessageAndDie(err.Error())
+	}
+	if os.MkdirAll(path+"/.fruorepo", 0755) != nil {
+		MessageAndDie(err.Error())
+	}
+
+	// CreateLabels
+	labelSet := []map[string]string{}
+	if opt.Restore == true {
+		labelSet, err = restoreLbelset(path)
+	} else {
+		err = backupLabelset(path, labels)
+		labelSet = append(labelSet, map[string]string{"name": ":scroll:クエスト中", "color": "17139C"})                // WIP
+		labelSet = append(labelSet, map[string]string{"name": ":mag:鑑定待ち", "color": "5FCC9C"})                    // レビュー待ち
+		labelSet = append(labelSet, map[string]string{"name": ":moneybag:クエスト達成", "color": "FFA3AC"})             // 作業終了
+		labelSet = append(labelSet, map[string]string{"name": ":speech_balloon:追加クエスト", "color": "FFCD19"})       // 修正依頼
+		labelSet = append(labelSet, map[string]string{"name": ":crossed_swords:討伐中", "color": "6EC4FF"})          // WIP（バグ取り）
+		labelSet = append(labelSet, map[string]string{"name": ":+1:討伐済み", "color": "6EC4FF"})                     // バグ取り完了
+		labelSet = append(labelSet, map[string]string{"name": ":dragon:ドラゴン", "color": "E43A19"})                 // バグ：優先度高
+		labelSet = append(labelSet, map[string]string{"name": ":sparkles:スキルアップ", "color": "ECFEFF"})             // 機能追加
+		labelSet = append(labelSet, map[string]string{"name": ":face_with_head_bandage:援軍要請", "color": "B30753"}) // Help
+	}
+
 	// DeleteLabels
 	for _, label := range labels {
 		err := f.DeleteLabel(label, opt)
@@ -88,18 +124,6 @@ func run(opt *Options) {
 			MessageAndDie(err.Error())
 		}
 	}
-
-	// CreateLabels
-	labelSet := []map[string]string{}
-	labelSet = append(labelSet, map[string]string{"name": ":scroll:クエスト中", "color": "17139C"})                // WIP
-	labelSet = append(labelSet, map[string]string{"name": ":mag:鑑定待ち", "color": "5FCC9C"})                    // レビュー待ち
-	labelSet = append(labelSet, map[string]string{"name": ":moneybag:クエスト達成", "color": "FFA3AC"})             // 作業終了
-	labelSet = append(labelSet, map[string]string{"name": ":speech_balloon:追加クエスト", "color": "FFCD19"})       // 修正依頼
-	labelSet = append(labelSet, map[string]string{"name": ":crossed_swords:討伐中", "color": "6EC4FF"})          // WIP（バグ取り）
-	labelSet = append(labelSet, map[string]string{"name": ":+1:討伐済み", "color": "6EC4FF"})                     // バグ取り完了
-	labelSet = append(labelSet, map[string]string{"name": ":dragon:ドラゴン", "color": "E43A19"})                 // バグ：優先度高
-	labelSet = append(labelSet, map[string]string{"name": ":sparkles:スキルアップ", "color": "ECFEFF"})             // 機能追加
-	labelSet = append(labelSet, map[string]string{"name": ":face_with_head_bandage:援軍要請", "color": "B30753"}) // Help
 
 	for _, label := range labelSet {
 		err := f.CreateLabel(label["name"], label["color"], opt)
@@ -130,4 +154,43 @@ func confirm(message string) string {
 	}
 
 	return ret
+}
+
+// backup labelset
+func backupLabelset(path string, labels []*github.Label) error {
+	file, err := os.Create(path + "/.fruorepo/restore")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	for _, label := range labels {
+		writer.WriteString(fmt.Sprintf("%s, %s\n", *label.Name, *label.Color))
+	}
+	writer.Flush()
+
+	return nil
+}
+
+// restore labelset
+func restoreLbelset(path string) ([]map[string]string, error) {
+	labelSet := []map[string]string{}
+
+	file, err := os.Open(path + "/.fruorepo/restore")
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		params := strings.Split(scanner.Text(), ", ")
+		labelSet = append(labelSet, map[string]string{"name": params[0], "color": params[1]})
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return labelSet, nil
 }
